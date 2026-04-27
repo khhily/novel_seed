@@ -1,0 +1,118 @@
+@model NovelSeed.Controllers.WorkflowsController.RunWorkflowVm
+
+@{
+    ViewData["Title"] = "Run Workflow";
+    var count = Model.Parameters?.Count ?? 0;
+    if (count < 1)
+    {
+        count = 1;
+    }
+}
+
+<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+    <h1 class="h3 mb-0">Run Workflow</h1>
+    <a class="btn btn-outline-secondary" asp-controller="Inspirations" asp-action="Index">返回灵感列表</a>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Error))
+{
+    <div class="alert alert-danger" role="alert">@Model.Error</div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ResponseStatus))
+{
+    <div class="alert alert-info" role="alert">
+        <div class="fw-semibold">Response</div>
+        <div class="small text-muted">@Model.ResponseStatus</div>
+    </div>
+}
+
+<form method="post" asp-controller="Workflows" asp-action="Run">
+    @Html.AntiForgeryToken()
+
+    <div class="alert alert-secondary" role="alert">
+        请求地址：{DifyApiHost}/v1/workflows/run
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="fw-semibold">参数列表（inputs）</div>
+        <button type="button" class="btn btn-sm btn-outline-primary" id="addParam">添加参数</button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm align-middle">
+            <thead>
+            <tr>
+                <th style="width: 40%;">参数名</th>
+                <th>参数值</th>
+                <th style="width: 1%;"></th>
+            </tr>
+            </thead>
+            <tbody id="params" data-next-index="@count">
+            @for (var i = 0; i < count; i++)
+            {
+                var p = (Model.Parameters is not null && i < Model.Parameters.Count) ? Model.Parameters[i] : new NovelSeed.Controllers.WorkflowsController.WorkflowParameterVm();
+                <tr>
+                    <td>
+                        <input class="form-control form-control-sm" name="Parameters[@i].Key" value="@p.Key" placeholder="例如：topic" />
+                    </td>
+                    <td>
+                        <input class="form-control form-control-sm" name="Parameters[@i].Value" value="@p.Value" placeholder="例如：世界观" />
+                    </td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger removeParam">删除</button>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-grid d-md-flex gap-2 mt-3">
+        <button class="btn btn-primary" type="submit">运行工作流</button>
+        <a class="btn btn-outline-secondary" asp-controller="Workflows" asp-action="Run">重置</a>
+    </div>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(Model.ResponseBody))
+{
+    <div class="mt-4">
+        <div class="fw-semibold mb-2">Response Body</div>
+        <textarea class="form-control font-monospace" rows="12" readonly>@Model.ResponseBody</textarea>
+    </div>
+}
+
+@section Scripts
+{
+    <script>
+        (function () {
+            var tbody = document.getElementById('params');
+            var addBtn = document.getElementById('addParam');
+
+            function bindRemoveButtons(root) {
+                var btns = (root || document).querySelectorAll('.removeParam');
+                for (var i = 0; i < btns.length; i++) {
+                    btns[i].addEventListener('click', function (e) {
+                        var tr = e.target.closest('tr');
+                        if (tr) tr.remove();
+                    });
+                }
+            }
+
+            addBtn.addEventListener('click', function () {
+                var nextIndex = parseInt(tbody.getAttribute('data-next-index') || '0', 10);
+                var tr = document.createElement('tr');
+                tr.innerHTML =
+                    '<td><input class="form-control form-control-sm" name="Parameters[' + nextIndex + '].Key" placeholder="例如：topic" /></td>' +
+                    '<td><input class="form-control form-control-sm" name="Parameters[' + nextIndex + '].Value" placeholder="例如：世界观" /></td>' +
+                    '<td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger removeParam">删除</button></td>';
+
+                tbody.appendChild(tr);
+                tbody.setAttribute('data-next-index', String(nextIndex + 1));
+                bindRemoveButtons(tr);
+            });
+
+            bindRemoveButtons(document);
+        })();
+    </script>
+}
